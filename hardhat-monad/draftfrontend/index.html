@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain Guardian - A Node Defense Game</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+      <h1>Blockchain Guardian</h1>
+      <p>Connecting to Local Hardhat Node...</p>
+      <div class="loader"></div>
+    </div>
+
+    <!-- Game Header -->
+    <header>
+      <div class="logo">
+        <h1>Blockchain Guardian</h1>
+        <p>Secure the Network, Earn NFTs</p>
+      </div>
+      <div class="player-info">
+        <p>Address: <span id="player-address">0x...</span></p>
+        <p>Level: <span id="player-level">0</span></p>
+        <p>Security Points: <span id="security-points">0</span></p>
+      </div>
+    </header>
+
+    <!-- Game Content -->
+    <main>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="game">Game</button>
+        <button class="tab-btn" data-tab="nfts">Your NFTs</button>
+        <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+        <button class="tab-btn" data-tab="docs">Documentation</button>
+      </div>
+
+      <div class="tab-content">
+        <!-- Game Tab -->
+        <div id="game-tab" class="tab-panel active">
+          <div class="level-select">
+            <h2>Select a Level</h2>
+            <div id="level-select" class="level-buttons">
+              <!-- Level buttons will be added dynamically -->
+            </div>
+          </div>
+
+          <div id="game-container">
+            <div class="welcome-screen">
+              <h2>Welcome to Blockchain Guardian!</h2>
+              <p>Defend the blockchain network by solving security puzzles and earning NFT certificates.</p>
+              <p>Each level teaches you different blockchain security concepts as you progress through the network.</p>
+              <p>Select a level from the menu above to begin your journey as a Blockchain Guardian.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- NFTs Tab -->
+        <div id="nfts-tab" class="tab-panel">
+          <h2>Your NFT Certificates</h2>
+          <div id="nft-collection" class="nft-grid">
+            <!-- NFT cards will be added dynamically -->
+          </div>
+        </div>
+
+        <!-- Leaderboard Tab -->
+        <div id="leaderboard-tab" class="tab-panel">
+          <h2>Guardian Leaderboard</h2>
+          <table id="leaderboard-table" class="leaderboard">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Address</th>
+                <th>Levels</th>
+                <th>Points</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+              <!-- Leaderboard entries will be added dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Documentation Tab -->
+        <div id="docs-tab" class="tab-panel">
+          <h2>Blockchain Concepts</h2>
+
+          <div class="doc-section">
+            <h3>Transaction Signatures</h3>
+            <p>In blockchain systems, transactions are authorized using digital signatures created with private keys.
+              These signatures can be verified using the corresponding public key, ensuring only the owner of a private
+              key can create valid transactions.</p>
+            <p>The ECDSA (Elliptic Curve Digital Signature Algorithm) is used in many blockchains including Ethereum and
+              Monad.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Cryptographic Hashing</h3>
+            <p>Hash functions map data of arbitrary size to fixed-size values. In blockchains, they're used for:</p>
+            <ul>
+              <li>Creating unique transaction IDs</li>
+              <li>Generating block hashes</li>
+              <li>Merkle trees for efficient data verification</li>
+              <li>Mining through proof-of-work mechanisms</li>
+            </ul>
+            <p>Ethereum and Monad use the Keccak-256 hash function.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Merkle Trees</h3>
+            <p>Merkle trees are data structures that efficiently verify the integrity of large datasets. They work by:
+            </p>
+            <ul>
+              <li>Hashing each piece of data (e.g., transaction)</li>
+              <li>Pairing and hashing those hashes to create parent nodes</li>
+              <li>Repeating until a single "root hash" is created</li>
+            </ul>
+            <p>This allows proving a transaction is included in a block by providing a small "Merkle proof" rather than
+              the entire block data.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Smart Contract Security</h3>
+            <p>Smart contracts are self-executing programs deployed on blockchain networks. Common vulnerabilities
+              include:</p>
+            <ul>
+              <li><strong>Reentrancy:</strong> When a contract function is interrupted before completion, allowing an
+                attacker to call it again and manipulate state.</li>
+              <li><strong>Integer Overflow/Underflow:</strong> Mathematical operations that exceed data type limits.
+              </li>
+              <li><strong>Access Control Issues:</strong> Improper permission checks allowing unauthorized actions.</li>
+              <li><strong>Front-running:</strong> When attackers observe pending transactions and insert their own with
+                higher gas fees.</li>
+            </ul>
+            <p>Best practices include following the checks-effects-interactions pattern, using standardized libraries,
+              and comprehensive testing.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Consensus Mechanisms</h3>
+            <p>Consensus mechanisms are protocols that ensure all nodes in a blockchain network agree on the current
+              state. Popular mechanisms include:</p>
+            <ul>
+              <li><strong>Proof of Work (PoW):</strong> Nodes compete to solve computational puzzles.</li>
+              <li><strong>Proof of Stake (PoS):</strong> Validators are chosen based on the amount of cryptocurrency
+                they stake.</li>
+              <li><strong>Delegated Proof of Stake (DPoS):</strong> Token holders vote for delegates who validate
+                transactions.</li>
+              <li><strong>Practical Byzantine Fault Tolerance (PBFT):</strong> Nodes reach consensus through multi-round
+                voting.</li>
+            </ul>
+            <p>Proof of Stake requires significantly less energy than Proof of Work and is used by networks like
+              Ethereum 2.0 and Monad.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Message Box for notifications -->
+    <div id="message-box" class="message-box"></div>
+
+    <!-- Footer -->
+    <footer>
+      <p>Blockchain Guardian - A Node Defense Game</p>
+      <p>Currently running on Local Hardhat Node. Made with ❤️ for blockchain education.</p>
+    </footer>
+  </div>
+
+  <!-- Update script section -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <script type="module" src="src/config/addresses.js"></script>
+  <script type="module" src="abis/BlockchainGuardianGame.js"></script>
+  <script type="module" src="abis/LevelContracts.js"></script>
+  <script type="module" src="src/main.js"></script>
+  <script type="module" src="src/init.js"></script>
+</body>
+
+</html>

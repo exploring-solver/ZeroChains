@@ -3,16 +3,14 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
  * @title BlockchainGuardianGame
  * @dev Main game contract for Blockchain Guardian game
  */
 contract BlockchainGuardianGame is ERC721Enumerable, Ownable {
-    using Counters for Counters.Counter;
     
-    Counters.Counter private _tokenIdCounter;
+    uint256 private _tokenIds;
     
     // Player progress tracking
     mapping(address => uint256) public playerLevel;
@@ -91,8 +89,8 @@ contract BlockchainGuardianGame is ERC721Enumerable, Ownable {
      * @param level Level completed
      */
     function _mintLevelNFT(address player, uint256 level) internal {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        _tokenIds++;
+        uint256 tokenId = _tokenIds;
         _mint(player, tokenId);
         
         emit NFTMinted(player, tokenId, level);
@@ -232,6 +230,18 @@ contract Level1Genesis is LevelBase {
     constructor(address _gameContract) LevelBase(_gameContract, 1) {}
     
     /**
+     * @dev Gets the Ethereum signed message hash from a message hash
+     * @param _messageHash The hash of the original message
+     * @return The Ethereum signed message hash
+     */
+    function getEthSignedMessageHash(bytes32 _messageHash) public pure returns (bytes32) {
+        // This recreates the signed message hash that is created by ethers.js signMessage
+        return keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", _messageHash)
+        );
+    }
+
+    /**
      * @dev Verifies a transaction signature
      * @param txHash Transaction hash
      * @param v V component of signature
@@ -245,9 +255,59 @@ contract Level1Genesis is LevelBase {
         bytes32 r,
         bytes32 s
     ) public notSelfDestructed returns (address) {
-        address signer = ecrecover(txHash, v, r, s);
+        // Get the Ethereum signed message hash
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(txHash);
+        
+        // Recover signer address using ecrecover
+        address signer = ecrecover(ethSignedMessageHash, v, r, s);
         
         // Check if the signature is valid (not zero address)
+        require(signer != address(0), "Invalid signature");
+        
+        // Check if signer matches sender (optional)
+        // require(signer == msg.sender, "Signer does not match sender");
+        
+        // If successful, complete the level
+        _completeLevel(msg.sender);
+        
+        return signer;
+    }
+    
+    /**
+     * @dev Simpler signature verification function that accepts the full signature bytes
+     * @param messageHash The original message hash
+     * @param signature The signature bytes (65 bytes: r, s, v)
+     * @return Recovered signer address
+     */
+    function verifySignatureBytes(
+        bytes32 messageHash,
+        bytes memory signature
+    ) public notSelfDestructed returns (address) {
+        require(signature.length == 65, "Invalid signature length");
+        
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        
+        // Extract r, s, v from the signature
+        assembly {
+            r := mload(add(signature, 32))
+            s := mload(add(signature, 64))
+            v := byte(0, mload(add(signature, 96)))
+        }
+        
+        // Convert v if needed (Ethereum mainnet)
+        if (v < 27) {
+            v += 27;
+        }
+        
+        // Get the Ethereum signed message hash
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+        
+        // Recover signer address
+        address signer = ecrecover(ethSignedMessageHash, v, r, s);
+        
+        // Check if the signature is valid
         require(signer != address(0), "Invalid signature");
         
         // If successful, complete the level
@@ -258,13 +318,15 @@ contract Level1Genesis is LevelBase {
 }
 
 /**
- * @title Level2HashFortress
- * @dev Level 2: Cryptographic Hashing
+ * @title Level2HashFortress (Simplified)
+ * @dev Level 2: Cryptographic Hashing with an easier solution
  */
 contract Level2HashFortress is LevelBase {
     bytes32 public targetPrefixHash;
     
     constructor(address _gameContract, bytes32 _targetPrefixHash) LevelBase(_gameContract, 2) {
+        // Using a more easily findable target prefix
+        // Just requires matching the first byte instead of 4 bytes
         targetPrefixHash = _targetPrefixHash;
     }
     
@@ -275,8 +337,9 @@ contract Level2HashFortress is LevelBase {
     function solveHashPuzzle(bytes32 solution) public notSelfDestructed {
         bytes32 fullHash = keccak256(abi.encode(solution));
         
-        // Check first 4 bytes match target prefix
-        require(fullHash & bytes32(uint256(0xffffffff) << 224) == targetPrefixHash & bytes32(uint256(0xffffffff) << 224), 
+        // Check only first byte matches target prefix (much easier)
+        // Using bytes32(uint256(0xff) << 248) as mask (just first byte)
+        require(fullHash & bytes32(uint256(0xff) << 248) == targetPrefixHash & bytes32(uint256(0xff) << 248), 
                 "Hash prefix doesn't match");
         
         // If successful, complete the level
@@ -407,11 +470,11 @@ contract Level4ReentrancyLabyrinth is LevelBase {
     function validateSolution() external notSelfDestructed {
         // Check if player successfully exploited and then secured the contract
         require(exploitSuccessful, "You need to successfully exploit the contract first");
-        require(!hasWithdrawn[msg.sender], "Already withdrawn securely");
+        require(!hasWithdrawn[msg.sender], "Already withdrawn securely"); 
         
         // Test secure withdrawal
-        deposit();
-        secureWithdraw(balances[msg.sender]);
+        this.deposit();
+        this.secureWithdraw(balances[msg.sender]);
         hasWithdrawn[msg.sender] = true;
         
         // If successful, complete the level

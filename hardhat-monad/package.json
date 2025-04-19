@@ -3,17 +3,37 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.ts",
+    "deploy:localhost": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:monad": "hardhat run scripts/deploy.ts --network monad",
+    "post-deploy": "hardhat run scripts/post-deploy.ts",
+    "pipeline": "node scripts/deploy-pipeline.js",
+    "pipeline:localhost": "node scripts/deploy-pipeline.js --network localhost",
+    "pipeline:monad": "node scripts/deploy-pipeline.js --network monad",
+    "clean": "hardhat clean",
+    "node": "hardhat node"
   },
+  "keywords": [
+    "blockchain",
+    "game",
+    "monad",
+    "ethereum",
+    "security"
+  ],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition-viem": "^0.15.10",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
-    "hardhat": "^2.22.19"
+    "hardhat": "^2.23.0"
   },
   "dependencies": {
-    "dotenv": "^16.4.7"
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.3.0",
+    "dotenv": "^16.4.7",
+    "web3": "^4.16.0"
   }
 }
