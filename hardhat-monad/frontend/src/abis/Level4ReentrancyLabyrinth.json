@@ -11,6 +11,25 @@
     "type": "constructor"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "level",
+        "type": "uint256"
+      }
+    ],
+    "name": "LevelCompleted",
+    "type": "event"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -67,7 +86,7 @@
     "name": "gameContract",
     "outputs": [
       {
-        "internalType": "contract BlockchainGuardianGame",
+        "internalType": "address",
         "name": "",
         "type": "address"
       }
@@ -118,26 +137,6 @@
     "name": "secureWithdraw",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "selfDestruct",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "selfDestructed",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {

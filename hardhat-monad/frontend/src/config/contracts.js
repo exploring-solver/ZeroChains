@@ -1,7 +1,7 @@
-// Auto-generated from deployment on 2025-04-19T19:24:24.911Z
+// Auto-generated from deployment on 2025-04-20T13:30:46.549Z
 export const contracts = {
   "BlockchainGuardianGame": {
-    "address": "0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0",
+    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
     "abi": [
       {
         "inputs": [],
@@ -944,7 +944,7 @@ export const contracts = {
     ]
   },
   "Level1Genesis": {
-    "address": "0x0dcd1bf9a1b36ce34237eeafef220932846bcd82",
+    "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
     "abi": [
       {
         "inputs": [
@@ -1083,7 +1083,7 @@ export const contracts = {
     ]
   },
   "Level2HashFortress": {
-    "address": "0x0b306bf915c4d645ff596e518faf3f9669b97016",
+    "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
     "abi": [
       {
         "inputs": [
@@ -1176,7 +1176,7 @@ export const contracts = {
     ]
   },
   "Level3MerkleMaze": {
-    "address": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
+    "address": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
     "abi": [
       {
         "inputs": [
@@ -1279,7 +1279,7 @@ export const contracts = {
     ]
   },
   "Level4ReentrancyLabyrinth": {
-    "address": "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
+    "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
     "abi": [
       {
         "inputs": [
@@ -1291,6 +1291,25 @@ export const contracts = {
         ],
         "stateMutability": "payable",
         "type": "constructor"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "address",
+            "name": "player",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "level",
+            "type": "uint256"
+          }
+        ],
+        "name": "LevelCompleted",
+        "type": "event"
       },
       {
         "inputs": [
@@ -1349,7 +1368,7 @@ export const contracts = {
         "name": "gameContract",
         "outputs": [
           {
-            "internalType": "contract BlockchainGuardianGame",
+            "internalType": "address",
             "name": "",
             "type": "address"
           }
@@ -1404,26 +1423,6 @@ export const contracts = {
       },
       {
         "inputs": [],
-        "name": "selfDestruct",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      },
-      {
-        "inputs": [],
-        "name": "selfDestructed",
-        "outputs": [
-          {
-            "internalType": "bool",
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [],
         "name": "totalDeposits",
         "outputs": [
           {
@@ -1462,7 +1461,7 @@ export const contracts = {
     ]
   },
   "Level5ConsensusArena": {
-    "address": "0x59b670e9fa9d0a427751af201d676719a970857b",
+    "address": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
     "abi": [
       {
         "inputs": [

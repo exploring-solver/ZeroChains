@@ -1,8 +1,8 @@
 {
-  "BlockchainGuardianGame": "0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0",
-  "Level1Genesis": "0x0dcd1bf9a1b36ce34237eeafef220932846bcd82",
-  "Level2HashFortress": "0x0b306bf915c4d645ff596e518faf3f9669b97016",
-  "Level3MerkleMaze": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
-  "Level4ReentrancyLabyrinth": "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
-  "Level5ConsensusArena": "0x59b670e9fa9d0a427751af201d676719a970857b"
+  "BlockchainGuardianGame": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  "Level1Genesis": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+  "Level2HashFortress": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+  "Level3MerkleMaze": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+  "Level4ReentrancyLabyrinth": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+  "Level5ConsensusArena": "0x8a791620dd6260079bf849dc5567adc3f2fdc318"
 }
