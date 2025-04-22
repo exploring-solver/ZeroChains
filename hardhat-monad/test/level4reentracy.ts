@@ -206,7 +206,7 @@ async function main() {
         // Make a deposit to validate the secure withdrawal
         console.log("\nMaking a deposit to test secure withdrawal...");
         const depositHash = await level4Contract.write.deposit([], {
-          value: parseEther("0.1") // Deposit 0.1 ETH
+          value: parseEther("5.0") // Deposit 0.1 ETH
         });
         await publicClient.waitForTransactionReceipt({ hash: depositHash });
         

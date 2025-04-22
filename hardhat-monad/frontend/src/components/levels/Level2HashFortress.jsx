@@ -1,281 +1,400 @@
-// src/components/levels/Level2HashFortress.jsx
+// src/components/levels/Level2HashForge.jsx
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { useWeb3 } from '../../contexts/Web3Context';
-import LevelCompletion from './LevelCompletion';
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  TextField, 
+  Paper, 
+  Divider,
+  Alert,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Grid,
+  Card,
+  CardContent,
+  LinearProgress
+} from '@mui/material';
+import { 
+  ExpandMore, 
+  Search, 
+  Code, 
+  Check,
+  HelpOutline,
+  CalculateOutlined
+} from '@mui/icons-material';
 
-const Level2HashFortress = () => {
-  const { contracts } = useWeb3();
+import { useWeb3 } from '../../contexts/Web3Context';
+import CodeEditor from '../game/CodeEditor';
+
+const Level2HashForge = ({ onComplete, isCompleted }) => {
+  const { contracts, account, provider } = useWeb3();
   
   const [targetPrefix, setTargetPrefix] = useState('');
+  const [nonce, setNonce] = useState('');
   const [solution, setSolution] = useState('');
-  const [hashedSolution, setHashedSolution] = useState('');
-  const [hashMatches, setHashMatches] = useState(false);
-  const [isMining, setIsMining] = useState(false);
-  const [solutionFound, setSolutionFound] = useState(false);
-  const [isSolving, setIsSolving] = useState(false);
+  const [hash, setHash] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [showCompletion, setShowCompletion] = useState(false);
-  const [gasUsed, setGasUsed] = useState(0);
-  
-  // Fetch target prefix from contract
+  const [success, setSuccess] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [codeExample, setCodeExample] = useState(`// Example of finding a hash with a specific prefix
+function findNonceWithPrefix() {
+  let nonce = 0;
+  while (true) {
+    // Convert nonce to bytes32
+    const nonceHex = ethers.utils.hexZeroPad(
+      ethers.BigNumber.from(nonce).toHexString(), 
+      32
+    );
+    
+    // Calculate hash
+    const hash = ethers.utils.keccak256(nonceHex);
+    
+    // Check if hash starts with required prefix (e.g., 0x0000)
+    if (hash.startsWith("0x0000")) {
+      console.log("Found matching nonce:", nonce);
+      console.log("Resulting hash:", hash);
+      return nonceHex; // Return as bytes32
+    }
+    
+    nonce++;
+    
+    // Progress indicator every million attempts
+    if (nonce % 1000000 === 0) {
+      console.log("Tried", nonce, "nonces so far");
+    }
+  }
+}`);
+
+  const hints = [
+    "The target prefix is the first byte of the hash. You need to find a value whose hash starts with this byte.",
+    "Use ethers.utils.keccak256() to calculate the hash of your input value.",
+    "Try using a loop to increment a nonce value until you find a hash that matches the target prefix."
+  ];
+
   useEffect(() => {
-    const fetchTargetPrefix = async () => {
-      if (!contracts.levels || !contracts.levels[2]) return;
-      
+    const loadTargetPrefix = async () => {
       try {
-        const prefix = await contracts.levels[2].targetPrefixHash();
-        setTargetPrefix(prefix);
-      } catch (error) {
-        console.error('Error fetching target prefix:', error);
-        setError('Failed to fetch target prefix from the contract');
+        if (contracts.level2) {
+          const prefix = await contracts.level2.targetPrefixHash();
+          setTargetPrefix(prefix);
+        }
+      } catch (err) {
+        console.error("Error loading target prefix:", err);
       }
     };
     
-    fetchTargetPrefix();
-  }, [contracts.levels]);
-  
-  // Calculate hash of solution using the correct contract method
-  const calculateHash = () => {
-    if (!solution.trim()) {
-      setError('Please enter a solution to hash');
-      return;
-    }
+    loadTargetPrefix();
     
+    if (isCompleted) {
+      setSuccess(true);
+    }
+  }, [contracts.level2, isCompleted]);
+
+  const calculateHash = () => {
     try {
-      // Convert solution to bytes32
-      const bytes32Solution = ethers.encodeBytes32String(solution);
+      if (!nonce) return;
       
-      // Calculate hash using the CORRECT contract method: keccak256(abi.encode(solution))
-      const hash = ethers.keccak256(
-        ethers.AbiCoder.defaultAbiCoder().encode(['bytes32'], [bytes32Solution])
+      // Convert nonce to bytes32
+      const nonceBytes32 = ethers.utils.hexZeroPad(
+        ethers.utils.hexlify(parseInt(nonce)), 
+        32
       );
       
-      setHashedSolution(hash);
+      // Calculate hash
+      const calculatedHash = ethers.utils.keccak256(nonceBytes32);
       
-      // SIMPLIFIED: Check if hash matches target prefix (first byte only)
-      const targetPrefixMask = '0xff00000000000000000000000000000000000000000000000000000000000000';
-      const maskedTarget = BigInt(targetPrefix) & BigInt(targetPrefixMask);
-      const maskedHash = BigInt(hash) & BigInt(targetPrefixMask);
-      
-      setHashMatches(maskedTarget === maskedHash);
-      setError('');
-    } catch (error) {
-      console.error('Error calculating hash:', error);
-      setError('Failed to calculate hash. Please try again.');
+      setHash(calculatedHash);
+      setSolution(nonceBytes32);
+    } catch (err) {
+      console.error("Hash calculation error:", err);
+      setError("Invalid nonce format. Please enter a valid number.");
     }
   };
-  
-  // Mine for a solution with matching prefix
-  const mineSolution = async () => {
+
+  const searchForSolution = async () => {
     if (!targetPrefix) {
-      setError('Target prefix not loaded yet');
+      setError("Target prefix not loaded yet");
       return;
     }
     
-    setIsMining(true);
+    setIsSearching(true);
     setError('');
     
     try {
-      // SIMPLIFIED: Target prefix mask (first byte only)
-      const targetPrefixMask = '0xff00000000000000000000000000000000000000000000000000000000000000';
-      const maskedTarget = BigInt(targetPrefix) & BigInt(targetPrefixMask);
+      // Get the first byte of target prefix as mask
+      const targetFirstByte = targetPrefix.slice(0, 4); // 0x + first byte
       
-      // Try random solutions until one matches
-      let found = false;
-      let attempt = 0;
-      let solution = '';
-      let hash = '';
+      let currentNonce = 0;
+      const maxIterations = 100000; // Limit search to avoid browser hanging
       
-      while (!found && attempt < 10000) {
-        // Generate random bytes32 value
-        solution = ethers.hexlify(ethers.randomBytes(32));
-        
-        // Calculate hash using the CORRECT contract method
-        hash = ethers.keccak256(
-          ethers.AbiCoder.defaultAbiCoder().encode(['bytes32'], [solution])
-        );
-        
-        // Check if first byte matches using BigInt
-        const maskedHash = BigInt(hash) & BigInt(targetPrefixMask);
-        
-        if (maskedTarget === maskedHash) {
-          found = true;
-          setSolution(solution);
-          setHashedSolution(hash);
-          setHashMatches(true);
-          setSolutionFound(true);
-        }
-        
-        attempt++;
-        
-        // Add a small delay every 100 attempts to keep the UI responsive
-        if (attempt % 100 === 0) {
+      for (let i = 0; i < maxIterations; i++) {
+        // Update progress periodically
+        if (i % 1000 === 0) {
+          setProgress((i / maxIterations) * 100);
+          // Allow UI to update
           await new Promise(resolve => setTimeout(resolve, 0));
         }
+        
+        // Convert nonce to bytes32
+        const nonceBytes32 = ethers.utils.hexZeroPad(
+          ethers.BigNumber.from(currentNonce).toHexString(), 
+          32
+        );
+        
+        // Calculate hash
+        const calculatedHash = ethers.utils.keccak256(nonceBytes32);
+        
+        // Check if hash starts with required prefix
+        if (calculatedHash.slice(0, 4) === targetFirstByte) {
+          setNonce(currentNonce.toString());
+          setHash(calculatedHash);
+          setSolution(nonceBytes32);
+          break;
+        }
+        
+        currentNonce++;
       }
       
-      if (!found) {
-        setError('Could not find a solution in the allowed attempts. Try again or enter a solution manually.');
+      if (hash === '') {
+        setError("Couldn't find a solution in the limited iterations. Try a larger number or use the 'Calculate Hash' feature with different nonce values.");
       }
-    } catch (error) {
-      console.error('Error mining solution:', error);
-      setError('Error while mining for a solution');
+      
+    } catch (err) {
+      console.error("Search error:", err);
+      setError("Error searching for solution. Please try again.");
     } finally {
-      setIsMining(false);
+      setIsSearching(false);
+      setProgress(0);
     }
   };
-  
-  // Submit solution to contract
+
   const submitSolution = async () => {
-    if (!solution || !hashMatches) {
-      setError('Please find a valid solution first');
+    if (!solution) {
+      setError("Please calculate a hash first");
       return;
     }
-    
-    setIsSolving(true);
+
+    setIsSubmitting(true);
     setError('');
     
     try {
-      // Convert solution to bytes32 if it's not already in bytes32 format
-      const bytes32Solution = solution.startsWith('0x') && solution.length === 66 
-        ? solution 
-        : ethers.encodeBytes32String(solution);
+      const level2Contract = contracts.level2;
       
-      // Estimate gas
-      const gasEstimate = await contracts.levels[2].solveHashPuzzle(bytes32Solution);
-      const gasLimit = gasEstimate.mul(110).div(100); // Add 10% buffer
+      // Call the contract to submit solution
+      const tx = await level2Contract.solveHashPuzzle(solution);
       
-      // Call contract to verify
-      const tx = await contracts.levels[2].solveHashPuzzle(bytes32Solution, { gasLimit });
+      // Wait for transaction confirmation
+      await tx.wait();
       
-      // Wait for transaction to be mined
-      const receipt = await tx.wait();
-      
-      // Get gas used
-      setGasUsed(receipt.gasUsed.toNumber());
-      
-      // Show completion modal
-      setShowCompletion(true);
-    } catch (error) {
-      console.error('Error submitting solution:', error);
-      setError('Failed to submit solution to the contract. Make sure the solution is valid.');
+      setSuccess(true);
+      if (onComplete) {
+        onComplete();
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+      setError("Solution verification failed. The hash doesn't match the required pattern.");
     } finally {
-      setIsSolving(false);
+      setIsSubmitting(false);
     }
   };
-  
+
+  const getNextHint = () => {
+    if (hintLevel < hints.length) {
+      setHintLevel(hintLevel + 1);
+    }
+  };
+
+  const renderHints = () => {
+    if (hintLevel === 0) return null;
+    
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" color="primary" gutterBottom>
+          Hints:
+        </Typography>
+        {hints.slice(0, hintLevel).map((hint, index) => (
+          <Alert key={index} severity="info" sx={{ mb: 1 }}>
+            {hint}
+          </Alert>
+        ))}
+      </Box>
+    );
+  };
+
+  if (success) {
+    return (
+      <Box>
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Congratulations! You've completed Level 2: Hash Forge
+        </Alert>
+        <Typography variant="body1" paragraph>
+          You've successfully learned about cryptographic hashing and solved a mining-like challenge.
+          This concept is fundamental to how blockchain miners find valid blocks.
+        </Typography>
+        <Typography variant="body1" paragraph>
+          Key concepts you've mastered:
+        </Typography>
+        <ul>
+          <li>Cryptographic hash functions (Keccak-256)</li>
+          <li>Hash prefix matching (similar to mining)</li>
+          <li>Computational work as proof</li>
+        </ul>
+      </Box>
+    );
+  }
+
   return (
-    <div className="level-container">
-      <div className="level-header">
-        <h2>Level 2: Hash Fortress (Simplified)</h2>
-        <p className="level-description">
-          Master cryptographic hashing by solving a hash puzzle with specific requirements.
-        </p>
-      </div>
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Hash Forge Challenge
+      </Typography>
+      <Typography variant="body1" paragraph>
+        Your task is to find a nonce value that, when hashed with Keccak-256, results in a hash with the target prefix.
+      </Typography>
       
-      <div className="level-content">
-        <div className="level-instructions">
-          <h3>Instructions</h3>
-          <ol>
-            <li>Enter a solution text or click "Mine Solution" to automatically find one</li>
-            <li>The solution must generate a hash whose first byte matches the target prefix</li>
-            <li>Submit your solution to the contract to complete the level</li>
-          </ol>
-          
-          <div className="info-box">
-            <h4>What are cryptographic hash functions?</h4>
-            <p>
-              Hash functions are one-way mathematical algorithms that convert data of any size into a fixed-size output.
-              In blockchain, the keccak256 hash function is commonly used.
-              Key properties include:
-            </p>
-            <ul>
-              <li><strong>Deterministic:</strong> Same input always produces the same output</li>
-              <li><strong>One-way:</strong> Easy to compute but practically impossible to reverse</li>
-              <li><strong>Avalanche effect:</strong> Small changes in input create completely different outputs</li>
-            </ul>
-          </div>
-          
-          <div className="target-prefix">
-            <h4>Target Prefix:</h4>
-            <p className="code-display">
-              {targetPrefix ? targetPrefix : 'Loading...'}
-            </p>
-          </div>
-        </div>
-        
-        <div className="level-interaction">
-          <div className="input-group">
-            <label htmlFor="solution">Your Solution:</label>
-            <div className="solution-input-container">
-              <input
-                type="text"
-                id="solution"
-                value={solution}
-                onChange={(e) => {
-                  setSolution(e.target.value);
-                  setHashMatches(false);
-                  setSolutionFound(false);
-                }}
-                placeholder="Enter a solution"
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="subtitle1" gutterBottom>
+            Target Prefix:
+          </Typography>
+          <TextField
+            fullWidth
+            value={targetPrefix}
+            variant="outlined"
+            inputProps={{ readOnly: true }}
+            helperText="This is the target prefix your solution's hash must match (first byte)"
+          />
+        </CardContent>
+      </Card>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                1. Find a Nonce
+              </Typography>
+              <TextField
+                fullWidth
+                label="Nonce (decimal number)"
+                value={nonce}
+                onChange={(e) => setNonce(e.target.value)}
+                margin="normal"
+                variant="outlined"
+                type="number"
               />
-              <button 
-                className="action-button secondary"
-                onClick={calculateHash}
-                disabled={!solution.trim()}
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={calculateHash}
+                  startIcon={<CalculateOutlined />}
+                >
+                  Calculate Hash
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={searchForSolution}
+                  disabled={isSearching}
+                  startIcon={isSearching ? <CircularProgress size={24} /> : <Search />}
+                >
+                  {isSearching ? 'Searching...' : 'Search for Solution'}
+                </Button>
+              </Box>
+              
+              {isSearching && (
+                <Box sx={{ width: '100%', mt: 2 }}>
+                  <LinearProgress variant="determinate" value={progress} />
+                  <Typography variant="caption" align="center" display="block" sx={{ mt: 1 }}>
+                    Searching... {Math.round(progress)}%
+                  </Typography>
+                </Box>
+              )}
+              
+              {hash && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Resulting Hash:
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    value={hash}
+                    variant="outlined"
+                    inputProps={{ readOnly: true }}
+                  />
+                  <Typography variant="caption" color={hash.slice(0, 4) === targetPrefix.slice(0, 4) ? "success.main" : "error.main"}>
+                    {hash.slice(0, 4) === targetPrefix.slice(0, 4) ? "✓ Prefix matches target!" : "✗ Prefix doesn't match target"}
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                2. Submit Solution
+              </Typography>
+              <Typography variant="body2" paragraph>
+                Once you've found a matching hash, submit your solution to the contract.
+              </Typography>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={submitSolution}
+                disabled={!solution || isSubmitting || !hash || hash.slice(0, 4) !== targetPrefix.slice(0, 4)}
+                startIcon={isSubmitting ? <CircularProgress size={24} /> : <Check />}
+                sx={{ mt: 1 }}
               >
-                Calculate Hash
-              </button>
-            </div>
-          </div>
-          
-          <button 
-            className="action-button primary"
-            onClick={mineSolution}
-            disabled={isMining || !targetPrefix}
-          >
-            {isMining ? 'Mining...' : 'Mine Solution'}
-          </button>
-          
-          {hashedSolution && (
-            <div className="hash-result">
-              <h4>Hashed Result:</h4>
-              <div className={`hash-value ${hashMatches ? 'match' : 'no-match'}`}>
-                {hashedSolution}
-              </div>
-              <p className="hash-status">
-                {hashMatches 
-                  ? '✅ Hash prefix matches the target!' 
-                  : '❌ Hash prefix does not match the target'}
-              </p>
-            </div>
-          )}
-          
-          {solutionFound && (
-            <button
-              className="action-button submit"
-              onClick={submitSolution}
-              disabled={isSolving}
-            >
-              {isSolving ? 'Submitting...' : 'Submit Solution'}
-            </button>
-          )}
-          
-          {error && <div className="error-message">{error}</div>}
-        </div>
-      </div>
+                {isSubmitting ? 'Submitting...' : 'Submit Solution'}
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
       
-      {showCompletion && (
-        <LevelCompletion
-          level={2}
-          pointsEarned={200}
-          gasUsed={gasUsed}
-          onClose={() => setShowCompletion(false)}
-        />
-      )}
-    </div>
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+      
+      {renderHints()}
+      
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={getNextHint}
+          startIcon={<HelpOutline />}
+          disabled={hintLevel >= hints.length}
+        >
+          Get Hint
+        </Button>
+      </Box>
+      
+      <Accordion sx={{ mt: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Typography><Code sx={{ mr: 1, verticalAlign: 'middle' }} /> Code Example</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <CodeEditor
+            value={codeExample}
+            language="javascript"
+            readOnly
+            height="200px"
+          />
+        </AccordionDetails>
+      </Accordion>
+    </Box>
   );
 };
 
-export default Level2HashFortress;
+export default Level2HashForge;

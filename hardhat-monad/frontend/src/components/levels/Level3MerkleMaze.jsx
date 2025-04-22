@@ -1,338 +1,422 @@
 // src/components/levels/Level3MerkleMaze.jsx
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  TextField, 
+  Paper, 
+  Divider,
+  Alert,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Grid,
+  Card,
+  CardContent,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon
+} from '@mui/material';
+import { 
+  ExpandMore, 
+  AccountTree, 
+  Code, 
+  Check,
+  HelpOutline,
+  PlayArrow,
+  LockOpen
+} from '@mui/icons-material';
+
 import { useWeb3 } from '../../contexts/Web3Context';
-import LevelCompletion from './LevelCompletion';
-import MerkleTreeVisualization from '../game/MerkleTreeVisualization';
-const Level3MerkleMaze = () => {
-    const { contracts } = useWeb3();
+import CodeEditor from '../game/CodeEditor';
+import MerkleTreeVisualizer from '../game/MerkleTreeVisualizer';
 
-    const [rootHash, setRootHash] = useState('');
-    const [transactions, setTransactions] = useState([]);
-    const [selectedIndex, setSelectedIndex] = useState(null);
-    const [merkleProof, setMerkleProof] = useState([]);
-    const [isVerifying, setIsVerifying] = useState(false);
-    const [error, setError] = useState('');
-    const [showCompletion, setShowCompletion] = useState(false);
-    const [gasUsed, setGasUsed] = useState(0);
-    const [merkleTree, setMerkleTree] = useState(null);
-
-    // Fetch root hash from contract
-    useEffect(() => {
-        const fetchRootHash = async () => {
-            if (!contracts.levels || !contracts.levels[3]) return;
-
-            try {
-                const hash = await contracts.levels[3].rootHash();
-                setRootHash(hash);
-
-                // Generate transactions and build a Merkle tree
-                generateTransactions(hash);
-            } catch (error) {
-                console.error('Error fetching root hash:', error);
-                setError('Failed to fetch Merkle root from the contract');
-            }
-        };
-
-        fetchRootHash();
-    }, [contracts.levels]);
-
-    // Generate transactions and build a valid Merkle tree
-    const generateTransactions = async (rootHashFromContract) => {
-        try {
-            // Create 8 sample transactions with unique data
-            const sampleTxs = [
-                { data: 'Transfer 0.5 ETH to 0x1234' },
-                { data: 'Transfer 1.2 ETH to 0x5678' },
-                { data: 'Transfer 0.3 ETH to 0x90ab' },
-                { data: 'Transfer 2.0 ETH to 0xcdef' },
-                { data: 'Transfer 0.1 ETH to 0xff00' },
-                { data: 'Transfer 1.5 ETH to 0xabcd' },
-                { data: 'Transfer 0.8 ETH to 0x9876' },
-                { data: 'Transfer 3.0 ETH to 0x5432' }
-            ];
-
-            // Calculate leaf hashes for each transaction
-            const leaves = sampleTxs.map(tx => {
-                // Hash the transaction data
-                const txHash = ethers.keccak256(ethers.toUtf8Bytes(tx.data));
-                return { ...tx, hash: txHash };
-            });
-
-            // Build the Merkle tree
-            const tree = buildMerkleTree(leaves.map(leaf => leaf.hash));
-            setMerkleTree(tree);
-
-            // If we need to match a specific rootHash from the contract
-            // We can adjust our tx data in a real implementation, but for this demo
-            // we'll just log a warning if they don't match
-            if (tree.root !== rootHashFromContract) {
-                console.warn('Generated Merkle root does not match contract root hash');
-                console.log('Generated root:', tree.root);
-                console.log('Contract root:', rootHashFromContract);
-            }
-
-            // Add index to each transaction
-            const txsWithIndex = leaves.map((tx, index) => ({
-                ...tx,
-                id: `tx${index + 1}`,
-                index
-            }));
-
-            setTransactions(txsWithIndex);
-        } catch (error) {
-            console.error('Error generating transactions:', error);
-            setError('Failed to generate transactions');
-        }
-    };
-
-    // Build a Merkle tree from leaf nodes
-    const buildMerkleTree = (leaves) => {
-        if (leaves.length === 0) return { root: null, levels: [] };
-
-        // Ensure we have a power of 2 number of leaves
-        let paddedLeaves = [...leaves];
-        while (paddedLeaves.length & (paddedLeaves.length - 1) !== 0) {
-            paddedLeaves.push(paddedLeaves[paddedLeaves.length - 1]);
-        }
-
-        const levels = [paddedLeaves];
-        let currentLevel = paddedLeaves;
-
-        while (currentLevel.length > 1) {
-            const nextLevel = [];
-            
-            for (let i = 0; i < currentLevel.length; i += 2) {
-                const left = currentLevel[i];
-                const right = currentLevel[i + 1];
-                
-                // Sort the hashes before combining - this is crucial!
-                const [sortedLeft, sortedRight] = [left, right].sort();
-                
-                // Combine hashes according to the contract's logic
-                const combinedHash = ethers.keccak256(
-                    ethers.concat([sortedLeft, sortedRight])
-                );
-                
-                nextLevel.push(combinedHash);
-            }
-            
-            levels.push(nextLevel);
-            currentLevel = nextLevel;
-        }
-
-        return {
-            root: currentLevel[0],
-            levels
-        };
-    };
-
-    // Generate a Merkle proof for a specific leaf node
-    const generateMerkleProof = (index) => {
-        if (!merkleTree) return [];
+// Helper function to create a Merkle Tree
+const createMerkleTree = (leaves) => {
+  if (!leaves || leaves.length === 0) return { root: null, proofs: [] };
+  
+  // Convert leaves to bytes32 hashes if they aren't already
+  const leafHashes = leaves.map(leaf => {
+    if (typeof leaf === 'string' && leaf.startsWith('0x') && leaf.length === 66) {
+      return leaf;
+    }
+    return ethers.keccak256(ethers.toUtf8Bytes(leaf));
+  });
+  
+  // Build tree
+  let level = leafHashes;
+  let proofs = leafHashes.map(() => []);
+  
+  while (level.length > 1) {
+    const nextLevel = [];
+    
+    for (let i = 0; i < level.length; i += 2) {
+      if (i + 1 < level.length) {
+        // Calculate parent node
+        const left = level[i];
+        const right = level[i + 1];
+        const hash = ethers.keccak256(
+          ethers.encodeBytes32String(['bytes32', 'bytes32'], [left, right])
+        );
+        nextLevel.push(hash);
         
-        const { levels } = merkleTree;
-        const proof = [];
-        let currentIndex = index;
-        
-        // Traverse the tree from bottom to top
-        for (let i = 0; i < levels.length - 1; i++) {
-            const level = levels[i];
-            
-            // Get the sibling index
-            const siblingIndex = currentIndex % 2 === 0 ? currentIndex + 1 : currentIndex - 1;
-            
-            // Ensure the sibling index is valid
-            if (siblingIndex < level.length) {
-                proof.push(level[siblingIndex]);
-            }
-            
-            // Move to the parent index in the next level
-            currentIndex = Math.floor(currentIndex / 2);
-        }
-        
-        return proof;
-    };
-
-    // Select a transaction to verify
-    const selectTransaction = (index) => {
-        const proof = generateMerkleProof(index);
-        setSelectedIndex(index);
-        setMerkleProof(proof);
-        setError('');
-    };
-
-    // Verify the Merkle proof locally before submitting to the contract
-    const verifyProofLocally = (leaf, proof, index) => {
-        let computedHash = leaf;
-        let currentIndex = index;
-        
-        for (let i = 0; i < proof.length; i++) {
-            const proofElement = proof[i];
-            
-            // Determine if current hash should be left or right
-            if (currentIndex % 2 === 0) {
-                // Current hash is left, proof element is right
-                computedHash = ethers.keccak256(
-                    ethers.concat([computedHash, proofElement])
-                );
+        // Update proofs for children
+        for (let j = 0; j < leafHashes.length; j++) {
+          if (j >= i * Math.pow(2, proofs.length - 1) && j < (i + 2) * Math.pow(2, proofs.length - 1)) {
+            if (j < (i + 1) * Math.pow(2, proofs.length - 1)) {
+              proofs[j].push(right);
             } else {
-                // Current hash is right, proof element is left
-                computedHash = ethers.keccak256(
-                    ethers.concat([proofElement, computedHash])
-                );
+              proofs[j].push(left);
             }
-            
-            // Move up to parent index
-            currentIndex = Math.floor(currentIndex / 2);
+          }
         }
+      } else {
+        // Odd number of nodes at this level
+        nextLevel.push(level[i]);
+      }
+    }
+    
+    level = nextLevel;
+  }
+  
+  return {
+    root: level[0],
+    proofs: proofs
+  };
+};
+
+const Level3MerkleMaze = ({ onComplete, isCompleted }) => {
+  const { contracts, account, provider } = useWeb3();
+  
+  const [rootHash, setRootHash] = useState('');
+  const [transactions, setTransactions] = useState([
+    'Transfer 1 ETH from Alice to Bob',
+    'Transfer 0.5 ETH from Charlie to Dave',
+    'Transfer 0.3 ETH from Eve to Mallory',
+    'Transfer 2 ETH from Frank to Grace'
+  ]);
+  const [merkleTree, setMerkleTree] = useState(null);
+  const [selectedLeaf, setSelectedLeaf] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [codeExample, setCodeExample] = useState(`// Function to create a Merkle tree and generate proofs
+function generateMerkleTree(leaves) {
+  // Convert strings to bytes32 hashes
+  const leafHashes = leaves.map(leaf => 
+    ethers.keccak256(ethers.toUtf8Bytes(leaf))
+  );
+  
+  // Build the tree levels
+  let level = leafHashes;
+  const tree = [level];
+  
+  // Store proofs for each leaf
+  const proofs = leafHashes.map(() => []);
+  
+  // Build tree until we reach the root
+  while (level.length > 1) {
+    const nextLevel = [];
+    
+    for (let i = 0; i < level.length; i += 2) {
+      if (i + 1 < level.length) {
+        // Hash pair of nodes
+        const left = level[i];
+        const right = level[i + 1];
+        const hash = ethers.keccak256(
+          ethers.defaultAbiCoder.encode(['bytes32', 'bytes32'], [left, right])
+        );
+        nextLevel.push(hash);
         
-        return computedHash === merkleTree.root;
-    };
-
-    // Verify the Merkle proof on-chain
-    const verifyProof = async () => {
-        if (selectedIndex === null) {
-            setError('Please select a transaction first');
-            return;
-        }
-
-        setIsVerifying(true);
-        setError('');
-
-        try {
-            const tx = transactions[selectedIndex];
-            
-            // Get the proof directly from generateMerkleProof
-            const proof = generateMerkleProof(selectedIndex);
-            
-            // Verify locally first
-            const isValidLocally = verifyProofLocally(tx.hash, proof, selectedIndex);
-            if (!isValidLocally) {
-                throw new Error('Invalid Merkle proof (local verification failed)');
+        // Update proofs
+        for (let j = 0; j < leafHashes.length; j++) {
+          const position = Math.floor(j / Math.pow(2, tree.length - 1));
+          if (position === Math.floor(i / 2)) {
+            if (j % 2 === 0) {
+              proofs[j].push(level[i + 1]);
+            } else {
+              proofs[j].push(level[i]);
             }
-
-            // Call contract to verify with original proof (not sorted)
-            const verifyTx = await contracts.levels[3].verifyMerkleProof(
-                proof,
-                tx.hash,
-                selectedIndex,
-                { gasLimit: 500000 }
-            );
-
-            const receipt = await verifyTx.wait();
-            setGasUsed(receipt.gasUsed);
-            setShowCompletion(true);
-        } catch (error) {
-            console.error('Error verifying Merkle proof:', error);
-            setError(`Failed to verify Merkle proof: ${error.message}`);
-        } finally {
-            setIsVerifying(false);
+          }
         }
+      } else {
+        // Single node at this level
+        nextLevel.push(level[i]);
+      }
+    }
+    
+    level = nextLevel;
+    tree.push(level);
+  }
+  
+  return {
+    root: level[0],
+    proofs: proofs
+  };
+}`);
+
+  const hints = [
+    "Create a Merkle tree from the provided transaction list.",
+    "Generate a Merkle proof for one of the transactions to prove it's part of the tree.",
+    "Submit the proof along with the leaf (transaction hash) and its index to verify."
+  ];
+
+  useEffect(() => {
+    const loadRootHash = async () => {
+      try {
+        if (contracts.level3) {
+          const root = await contracts.level3.rootHash();
+          setRootHash(root);
+        }
+      } catch (err) {
+        console.error("Error loading root hash:", err);
+      }
     };
+    
+    loadRootHash();
+    
+    if (isCompleted) {
+      setSuccess(true);
+    }
+  }, [contracts.level3, isCompleted]);
 
+  useEffect(() => {
+    // Generate Merkle tree when transactions change
+    if (transactions.length > 0) {
+      const tree = createMerkleTree(transactions);
+      setMerkleTree(tree);
+    }
+  }, [transactions]);
+
+  const handleNewTransaction = () => {
+    // Add a new transaction
+    setTransactions([
+      ...transactions,
+      `Transfer ${(Math.random() * 3).toFixed(2)} ETH from User${Math.floor(Math.random() * 1000)} to User${Math.floor(Math.random() * 1000)}`
+    ]);
+  };
+
+  const submitProof = async () => {
+    if (!merkleTree || !merkleTree.root) {
+      setError("Please generate a Merkle tree first");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
+      const level3Contract = contracts.level3;
+      
+      // Get the selected leaf and its proof
+      const leafText = transactions[selectedLeaf];
+      const leafHash = ethers.keccak256(ethers.toUtf8Bytes(leafText));
+      const proof = merkleTree.proofs[selectedLeaf];
+      
+      // Call the contract to verify the proof
+      const tx = await level3Contract.verifyMerkleProof(
+        proof,
+        leafHash,
+        selectedLeaf
+      );
+      
+      // Wait for transaction confirmation
+      await tx.wait();
+      
+      setSuccess(true);
+      if (onComplete) {
+        onComplete();
+      }
+    } catch (err) {
+      console.error("Proof submission error:", err);
+      setError("Merkle proof verification failed. The proof may be invalid or incorrect.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getNextHint = () => {
+    if (hintLevel < hints.length) {
+      setHintLevel(hintLevel + 1);
+    }
+  };
+
+  const renderHints = () => {
+    if (hintLevel === 0) return null;
+    
     return (
-        <div className="level-container">
-
-            <MerkleTreeVisualization merkleTree={merkleTree} selectedIndex={selectedIndex}/>
-            <div className="level-header">
-                <h2>Level 3: Merkle Maze</h2>
-                <p className="level-description">
-                    Navigate the Merkle tree maze by providing valid Merkle proofs for transactions.
-                </p>
-            </div>
-
-            <div className="level-content">
-                <div className="level-instructions">
-                    <h3>Instructions</h3>
-                    <ol>
-                        <li>Select a transaction from the list</li>
-                        <li>View its Merkle proof</li>
-                        <li>Submit the proof to the contract for verification</li>
-                    </ol>
-
-                    <div className="info-box">
-                        <h4>What are Merkle Trees?</h4>
-                        <p>
-                            Merkle trees are binary hash trees that efficiently verify data integrity.
-                            The tree is built by hashing pairs of nodes until only one hash remains (the root).
-                            A Merkle proof is a path of hashes from a leaf to the root, allowing verification
-                            that a specific transaction is included in the tree without needing the entire tree.
-                            Ethereum uses Merkle proofs to validate transactions without storing all transaction data on every node.
-                        </p>
-                    </div>
-
-                    <div className="merkle-root">
-                        <h4>Merkle Root:</h4>
-                        <p className="code-display">
-                            {rootHash ? rootHash : 'Loading...'}
-                        </p>
-                        {merkleTree && (
-                            <p className="code-display">
-                                Generated Root: {merkleTree.root}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="level-interaction">
-                    <div className="transactions-container">
-                        <h4>Select a Transaction:</h4>
-
-                        <div className="transaction-list">
-                            {transactions.map((tx, index) => (
-                                <div
-                                    key={tx.id}
-                                    className={`transaction-item ${selectedIndex === index ? 'selected' : ''}`}
-                                    onClick={() => selectTransaction(index)}
-                                >
-                                    <div className="transaction-header">
-                                        <span className="transaction-id">{tx.id}</span>
-                                        <span className="transaction-index">Index: {tx.index}</span>
-                                    </div>
-                                    <div className="transaction-data">{tx.data}</div>
-                                    <div className="transaction-hash">Hash: {tx.hash.substring(0, 10)}...</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {selectedIndex !== null && (
-                        <div className="proof-display">
-                            <h4>Merkle Proof:</h4>
-                            <div className="proof-list">
-                                {merkleProof.map((hash, index) => (
-                                    <div key={index} className="proof-item">
-                                        <span className="proof-level">Level {index + 1}:</span>
-                                        <span className="proof-hash">{hash.substring(0, 10)}...</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button
-                                className="action-button primary"
-                                onClick={verifyProof}
-                                disabled={isVerifying}
-                            >
-                                {isVerifying ? 'Verifying...' : 'Verify Proof'}
-                            </button>
-                        </div>
-                    )}
-
-                    {error && <div className="error-message">{error}</div>}
-                </div>
-            </div>
-
-            {showCompletion && (
-                <LevelCompletion
-                    level={3}
-                    pointsEarned={300}
-                    gasUsed={gasUsed}
-                    onClose={() => setShowCompletion(false)}
-                />
-            )}
-        </div>
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" color="primary" gutterBottom>
+          Hints:
+        </Typography>
+        {hints.slice(0, hintLevel).map((hint, index) => (
+          <Alert key={index} severity="info" sx={{ mb: 1 }}>
+            {hint}
+          </Alert>
+        ))}
+      </Box>
     );
+  };
+
+  if (success) {
+    return (
+      <Box>
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Congratulations! You've completed Level 3: Merkle Maze
+        </Alert>
+        <Typography variant="body1" paragraph>
+          You've successfully learned about Merkle trees and how to create and verify Merkle proofs.
+          This concept is fundamental to blockchain data structures and optimizing data verification.
+        </Typography>
+        <Typography variant="body1" paragraph>
+          Key concepts you've mastered:
+        </Typography>
+        <ul>
+          <li>Merkle tree construction</li>
+          <li>Proof generation for membership verification</li>
+          <li>Efficient validation of data integrity</li>
+        </ul>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Merkle Maze Challenge
+      </Typography>
+      <Typography variant="body1" paragraph>
+        Your task is to create a Merkle tree from a list of transactions and generate a valid proof that one transaction belongs to the tree.
+      </Typography>
+      
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="subtitle1" gutterBottom>
+            Target Root Hash:
+          </Typography>
+          <TextField
+            fullWidth
+            value={rootHash}
+            variant="outlined"
+            inputProps={{ readOnly: true }}
+            helperText="This is the root hash your Merkle tree should match"
+          />
+        </CardContent>
+      </Card>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                1. Transaction List
+              </Typography>
+              <List dense>
+                {transactions.map((tx, index) => (
+                  <ListItem 
+                    key={index}
+                    button
+                    selected={selectedLeaf === index}
+                    onClick={() => setSelectedLeaf(index)}
+                  >
+                    <ListItemIcon>
+                      {selectedLeaf === index ? <Check color="primary" /> : null}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={tx} 
+                      secondary={`Index: ${index}`} 
+                    />
+                  </ListItem>
+                ))}
+              </List>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleNewTransaction}
+                startIcon={<PlayArrow />}
+                sx={{ mt: 2 }}
+              >
+                Add Random Transaction
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                2. Merkle Tree
+              </Typography>
+              {merkleTree && merkleTree.root && (
+                <Box>
+                  <Typography variant="body2" paragraph>
+                    Root Hash: <code>{merkleTree.root.slice(0, 10)}...{merkleTree.root.slice(-8)}</code>
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    Selected Leaf: <strong>{selectedLeaf}</strong> - {transactions[selectedLeaf]}
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    Proof Length: <strong>{merkleTree.proofs[selectedLeaf].length}</strong> elements
+                  </Typography>
+                  <MerkleTreeVisualizer 
+                    transactions={transactions}
+                    selectedIndex={selectedLeaf}
+                    height={200}
+                  />
+                </Box>
+              )}
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={submitProof}
+                disabled={!merkleTree || !merkleTree.root || isSubmitting}
+                startIcon={isSubmitting ? <CircularProgress size={24} /> : <LockOpen />}
+                sx={{ mt: 2 }}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Proof'}
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+      
+      {renderHints()}
+      
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={getNextHint}
+          startIcon={<HelpOutline />}
+          disabled={hintLevel >= hints.length}
+        >
+          Get Hint
+        </Button>
+      </Box>
+      
+      <Accordion sx={{ mt: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Typography><Code sx={{ mr: 1, verticalAlign: 'middle' }} /> Code Example</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <CodeEditor
+            value={codeExample}
+            language="javascript"
+            readOnly
+            height="200px"
+          />
+        </AccordionDetails>
+      </Accordion>
+    </Box>
+  );
 };
 
 export default Level3MerkleMaze;

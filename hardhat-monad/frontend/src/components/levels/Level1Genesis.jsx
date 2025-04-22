@@ -1,167 +1,267 @@
+// src/components/levels/Level1Genesis.jsx
 import React, { useState, useEffect } from 'react';
-import { useWeb3 } from '../../contexts/Web3Context';
+import { ethers } from 'ethers';
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  TextField, 
+  Paper, 
+  Divider,
+  Alert,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Grid,
+  Card,
+  CardContent
+} from '@mui/material';
+import { 
+  ExpandMore, 
+  LockOpen, 
+  Code, 
+  Check, 
+  Info,
+  HelpOutline
+} from '@mui/icons-material';
 
-const Level1Genesis = () => {
-  const { account, contracts } = useWeb3();
-  const [gameAddress, setGameAddress] = useState('');
-  const [level1Address, setLevel1Address] = useState('');
-  const [playerLevel, setPlayerLevel] = useState(0);
-  const [showHint, setShowHint] = useState(false);
+import { useWeb3 } from '../../contexts/Web3Context';
+import CodeEditor from '../game/CodeEditor';
+
+const Level1Genesis = ({ onComplete, isCompleted }) => {
+  const { contracts, account, provider } = useWeb3();
+  
+  const [message, setMessage] = useState('Approve Level 1');
+  const [signature, setSignature] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [codeExample, setCodeExample] = useState(`// Example for signing a message with ethers.js
+const wallet = new ethers.Wallet(privateKey);
+const signature = await wallet.signMessage("Approve Level 1");
+console.log("Signature:", signature);
+
+// How signature verification works
+const recovered = ethers.utils.verifyMessage("Approve Level 1", signature);
+console.log("Recovered address:", recovered);
+`);
+
+  const hints = [
+    "Try signing the message 'Approve Level 1' with your connected wallet.",
+    "Use the personal_sign method via your wallet or ethers.js signMessage() function.",
+    "Make sure to use the exact message 'Approve Level 1' - case sensitivity matters!"
+  ];
 
   useEffect(() => {
-    // Get contract addresses when component mounts
-    if (contracts && contracts.game) {
-      setGameAddress(contracts.game.target);
+    if (isCompleted) {
+      setSuccess(true);
     }
-    if (contracts && contracts.levels && contracts.levels[1]) {
-      setLevel1Address(contracts.levels[1].target);
+  }, [isCompleted]);
+
+  const handleSign = async () => {
+    try {
+      setError('');
+      // Request signature from connected wallet
+      const signer = provider.getSigner();
+      console.log(signer);
+      const sig = await signer.signMessage(message);
+      
+      setSignature(sig);
+    } catch (err) {
+      console.error("Signing error:", err);
+      setError("Failed to sign message. Please try again.");
     }
+  };
+
+  const handleVerify = async () => {
+    if (!signature) {
+      setError("Please sign the message first");
+      return;
+    }
+
+    setIsVerifying(true);
+    setError('');
     
-    // Check player level
-    const checkPlayerLevel = async () => {
-      if (contracts && contracts.game && account) {
-        try {
-          const level = await contracts.game.playerLevel(account);
-          setPlayerLevel(Number(level));
-        } catch (error) {
-          console.error("Failed to check player level:", error);
-        }
+    try {
+      const messageHash = ethers.hashMessage(message);
+      const level1Contract = contracts.level1;
+      
+      // Call the contract to verify
+      const tx = await level1Contract.verifySignatureBytes(
+        messageHash,
+        signature
+      );
+      
+      // Wait for transaction confirmation
+      await tx.wait();
+      
+      setSuccess(true);
+      if (onComplete) {
+        onComplete();
       }
-    };
+    } catch (err) {
+      console.error("Verification error:", err);
+      setError("Signature verification failed. Please check your signature and try again.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const getNextHint = () => {
+    if (hintLevel < hints.length) {
+      setHintLevel(hintLevel + 1);
+    }
+  };
+
+  const renderHints = () => {
+    if (hintLevel === 0) return null;
     
-    checkPlayerLevel();
-    
-    // Set interval to check player level periodically
-    const intervalId = setInterval(checkPlayerLevel, 5000);
-    
-    return () => clearInterval(intervalId);
-  }, [contracts, account]);
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" color="primary" gutterBottom>
+          Hints:
+        </Typography>
+        {hints.slice(0, hintLevel).map((hint, index) => (
+          <Alert key={index} severity="info" sx={{ mb: 1 }}>
+            {hint}
+          </Alert>
+        ))}
+      </Box>
+    );
+  };
+
+  if (success) {
+    return (
+      <Box>
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Congratulations! You've completed Level 1: Genesis Signer
+        </Alert>
+        <Typography variant="body1" paragraph>
+          You've successfully learned how to sign and verify messages using Ethereum's digital signature scheme (ECDSA).
+          This is a fundamental concept in blockchain technology, used for transaction signing and authentication.
+        </Typography>
+        <Typography variant="body1" paragraph>
+          Key concepts you've mastered:
+        </Typography>
+        <ul>
+          <li>Digital signatures using ECDSA</li>
+          <li>Message signing with your Ethereum wallet</li>
+          <li>On-chain signature verification</li>
+        </ul>
+      </Box>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-slate-800 rounded-lg shadow-lg text-white">
-      <div className="mb-6 border-b border-slate-600 pb-4">
-        <h1 className="text-3xl font-bold text-green-400">LEVEL 1: GENESIS - HACKER CHALLENGE</h1>
-        <p className="mt-2 text-slate-300">
-          The GUI verification system is malfunctioning. To prove your blockchain mastery, 
-          you must interact with the contracts directly through code.
-        </p>
-      </div>
-
-      {playerLevel >= 1 ? (
-        <div className="bg-green-800 p-4 rounded-lg mb-6">
-          <h2 className="text-xl font-bold text-green-300">LEVEL COMPLETE!</h2>
-          <p>You've successfully hacked the verification system. Proceed to Level 2.</p>
-        </div>
-      ) : (
-        <div className="bg-slate-700 p-4 rounded-lg mb-6">
-          <h2 className="text-xl font-bold text-yellow-300">MISSION ACTIVE</h2>
-          <p>Current objective: Bypass the GUI and verify your signature directly with the contract.</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-slate-700 p-4 rounded-lg">
-          <h3 className="font-bold text-blue-300 mb-2">CONTRACT ADDRESSES</h3>
-          <div className="mb-2">
-            <label className="block text-sm text-slate-400">Game Contract:</label>
-            <code className="block bg-slate-900 p-2 rounded text-green-400 overflow-x-auto">{gameAddress || 'Loading...'}</code>
-          </div>
-          <div>
-            <label className="block text-sm text-slate-400">Level 1 Contract:</label>
-            <code className="block bg-slate-900 p-2 rounded text-green-400 overflow-x-auto">{level1Address || 'Loading...'}</code>
-          </div>
-        </div>
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Genesis Signer Challenge
+      </Typography>
+      <Typography variant="body1" paragraph>
+        Your task is to sign a message with your wallet and verify it using the smart contract.
+      </Typography>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                1. Sign a Message
+              </Typography>
+              <TextField
+                fullWidth
+                label="Message to sign"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                margin="normal"
+                variant="outlined"
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSign}
+                sx={{ mt: 2 }}
+                startIcon={<LockOpen />}
+              >
+                Sign Message
+              </Button>
+              
+              {signature && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Signature:
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2}
+                    value={signature}
+                    variant="outlined"
+                    inputProps={{ readOnly: true }}
+                  />
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
         
-        <div className="bg-slate-700 p-4 rounded-lg">
-          <h3 className="font-bold text-blue-300 mb-2">REQUIRED CONTRACT FUNCTIONS</h3>
-          <ul className="list-disc pl-5 space-y-2 text-slate-300">
-            <li><code className="bg-slate-800 px-1 rounded">verifySignature(bytes32 txHash, uint8 v, bytes32 r, bytes32 s)</code></li>
-            <li><code className="bg-slate-800 px-1 rounded">getEthSignedMessageHash(bytes32 _messageHash)</code></li>
-            <li><code className="bg-slate-800 px-1 rounded">playerLevel(address player)</code> - On Game Contract</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="bg-slate-700 p-4 rounded-lg mb-6">
-        <h3 className="font-bold text-blue-300 mb-2">MISSION INSTRUCTIONS</h3>
-        <ol className="list-decimal pl-5 space-y-2 text-slate-300">
-          <li>Create a Node.js script to interact with the blockchain</li>
-          <li>Connect to the network and create a wallet instance</li>
-          <li>Create a message and sign it with your private key</li>
-          <li>Extract the signature components (v, r, s)</li>
-          <li>Call <code className="bg-slate-800 px-1 rounded">verifySignature()</code> on the Level 1 contract</li>
-          <li>Verify completion by checking your player level</li>
-        </ol>
-      </div>
-
-      <div className="flex justify-center mb-6">
-        <button 
-          onClick={() => setShowHint(!showHint)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                2. Verify Signature
+              </Typography>
+              <Typography variant="body2" paragraph>
+                Click the button below to verify your signature on-chain.
+                The contract will check if your signature is valid and complete the level.
+              </Typography>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleVerify}
+                disabled={!signature || isVerifying}
+                startIcon={isVerifying ? <CircularProgress size={24} /> : <Check />}
+                sx={{ mt: 1 }}
+              >
+                {isVerifying ? 'Verifying...' : 'Verify Signature'}
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+      
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+      
+      {renderHints()}
+      
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={getNextHint}
+          startIcon={<HelpOutline />}
+          disabled={hintLevel >= hints.length}
         >
-          {showHint ? "Hide Code Hint" : "Show Code Hint"}
-        </button>
-      </div>
-
-      {showHint && (
-        <div className="bg-slate-900 p-4 rounded-lg mb-6 overflow-x-auto">
-          <h3 className="font-bold text-yellow-300 mb-2">CODE HINT</h3>
-          <pre className="text-green-400 text-sm">
-{`// Code snippet - create a file with this structure
-const { ethers } = require('ethers');
-require('dotenv').config();
-
-async function main() {
-  // Connect to the network
-  const provider = new ethers.JsonRpcProvider('YOUR_RPC_URL');
-  
-  // Your wallet private key (use environment variables!)
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  
-  // Contract addresses (replace with the actual addresses shown above)
-  const GAME_ADDRESS = '${gameAddress || '(copy from above)'}';
-  const LEVEL1_ADDRESS = '${level1Address || '(copy from above)'}';
-  
-  // Contract ABIs (minimum required functions)
-  const level1Abi = [
-    "function verifySignature(bytes32 txHash, uint8 v, bytes32 r, bytes32 s) public returns (address)",
-    "function getEthSignedMessageHash(bytes32 _messageHash) public pure returns (bytes32)"
-  ];
-  
-  const gameAbi = [
-    "function playerLevel(address player) public view returns (uint256)"
-  ];
-  
-  // Create contract instances
-  const level1Contract = new ethers.Contract(LEVEL1_ADDRESS, level1Abi, wallet);
-  const gameContract = new ethers.Contract(GAME_ADDRESS, gameAbi, wallet);
-  
-  // Create and sign a message
-  const message = "Your message here";
-  // ... (continue with signing and verification)
-}`}
-          </pre>
-        </div>
-      )}
-
-      <div className="bg-red-900 p-4 rounded-lg mb-4">
-        <h3 className="font-bold text-red-300 mb-2">⚠️ SECURITY WARNING</h3>
-        <p className="text-slate-300">
-          Never hardcode your private key. Always use environment variables (.env file) 
-          and ensure your private key is kept secure.
-        </p>
-      </div>
-
-      <div className="bg-slate-700 p-4 rounded-lg">
-        <h3 className="font-bold text-blue-300 mb-2">BLOCKCHAIN GUARDIAN NOTES</h3>
-        <ul className="list-disc pl-5 space-y-2 text-slate-300">
-          <li>In Ethereum, message signatures include a prefix to prevent signing arbitrary transactions</li>
-          <li>The signature components v, r, s are crucial for recovering the signer's address</li>
-          <li>The v value might need normalization (subtract 27) depending on the contract implementation</li>
-          <li>If one approach fails, try alternatives: raw components, normalized v, or full signature bytes</li>
-        </ul>
-      </div>
-    </div>
+          Get Hint
+        </Button>
+      </Box>
+      
+      <Accordion sx={{ mt: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Typography><Code sx={{ mr: 1, verticalAlign: 'middle' }} /> Code Example</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <CodeEditor
+            value={codeExample}
+            language="javascript"
+            readOnly
+            height="200px"
+          />
+        </AccordionDetails>
+      </Accordion>
+    </Box>
   );
 };
 
