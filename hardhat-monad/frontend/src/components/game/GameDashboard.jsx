@@ -60,7 +60,7 @@ const GameDashboard = () => {
             <Box display="flex" alignItems="center" mb={1}>
               <Typography variant="h6">
                 Your Progress: Level {playerLevel} / {totalLevels}
-              </Typography>
+              </Typography><wbr></wbr>
               {isGenesisGuardian && (
                 <Chip
                   icon={<Stars />}

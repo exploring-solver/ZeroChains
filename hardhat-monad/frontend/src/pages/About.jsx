@@ -47,7 +47,7 @@ const About = () => {
     <Container maxWidth="lg">
       <Box sx={{ py: 4 }}>
         <Typography variant="h3" gutterBottom>
-          About Blockchain Guardian
+          About ZeroChain
         </Typography>
         
         <Grid container spacing={4}>
@@ -70,7 +70,7 @@ const About = () => {
 
         <Paper elevation={3} sx={{ p: 3, mt: 4 }}>
           <Typography variant="h5" gutterBottom>
-            Why Choose Blockchain Guardian?
+            Why Choose ZeroChain?
           </Typography>
           <List>
             {[

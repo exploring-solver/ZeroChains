@@ -46,7 +46,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         <ListItem key={`level-${level}`} disablePadding>
           <ListItemButton
             component={RouterLink}
-            to={`/level/${level}`}
+            to={`/levels/${level}`}
             disabled={isLocked}
             selected={isActive}
           >

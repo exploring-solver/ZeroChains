@@ -1,4 +1,4 @@
-// Auto-generated from deployment on 2025-04-22T20:11:57.654Z
+// Auto-generated from deployment on 2025-04-25T15:14:26.246Z
 export const contractAddresses = {
   "BlockchainGuardianGame": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
   "Level1Genesis": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",

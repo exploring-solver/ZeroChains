@@ -1,5 +1,5 @@
 // src/components/layout/Header.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useWeb3 } from '../../contexts/Web3Context';
 import { useGame } from '../../contexts/GameContext';
@@ -14,18 +14,37 @@ import {
   Avatar,
   Stack,
   IconButton,
-  Divider
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   Security,
   EmojiEvents,
   AccountCircle,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Home,
+  PlayArrow,
+  EmojiObjects,
+  Person,
+  Info
 } from '@mui/icons-material';
 
 const Header = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { account, isConnected, connectWallet, disconnectWallet, isConnecting } = useWeb3();
   const { playerLevel, securityPoints } = useGame();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const formatAddress = (address) => {
     if (!address) return '';
@@ -33,94 +52,143 @@ const Header = () => {
   };
 
   const navLinks = [
-    { text: 'Home', path: '/' },
-    { text: 'Game', path: '/game' },
-    { text: 'Profile', path: '/profile' },
-    { text: 'About', path: '/about' }
+    { text: 'Home', path: '/', icon: <Home /> },
+    { text: 'Starting Point', path: '/scriptfun', icon: <PlayArrow /> },
+    { text: 'Remote Execution', path: '/remote-execution', icon: <PlayArrow /> },
+    { text: 'Chain Labs', path: '/premium-labs', icon: <PlayArrow /> },
+    { text: 'Challenges', path: '/game', icon: <EmojiObjects /> },
+    { text: 'Profile', path: '/profile', icon: <Person /> },
+    { text: 'About', path: '/about', icon: <Info /> }
   ];
 
-  return (
-    <AppBar position="sticky" color="default" elevation={1}>
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton 
-            edge="start"
-            color="inherit"
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
-          <Link
+  const drawer = (
+    <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
+      <Typography variant="h6" sx={{ my: 2 }}>
+        ZeroChain
+      </Typography>
+      <Divider />
+      <List>
+        {navLinks.map((link) => (
+          <ListItem
+            button
+            key={link.path}
             component={RouterLink}
-            to="/"
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              textDecoration: 'none',
-              color: 'inherit'
-            }}
+            to={link.path}
+            sx={{ textAlign: 'left' }}
           >
-            <Security sx={{ mr: 1 }} />
-            <Typography variant="h6" noWrap>
-              Blockchain Guardian
-            </Typography>
-          </Link>
-        </Box>
+            <ListItemIcon>{link.icon}</ListItemIcon>
+            <ListItemText primary={link.text} />
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
 
-        <Stack 
-          direction="row" 
-          spacing={2}
-          sx={{ display: { xs: 'none', sm: 'flex' } }}
-        >
-          {navLinks.map((link) => (
-            <Button
-              key={link.path}
-              component={RouterLink}
-              to={link.path}
+  return (
+    <>
+      <AppBar position="sticky" color="default" elevation={1}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton
               color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}
             >
-              {link.text}
-            </Button>
-          ))}
-        </Stack>
+              <MenuIcon />
+            </IconButton>
 
-        {isConnected ? (
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Chip
-              icon={<EmojiEvents />}
-              label={`Level ${playerLevel}`}
-              color="primary"
-              size="small"
-            />
-            <Chip
-              label={`${securityPoints} Points`}
-              color="secondary"
-              size="small"
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Link
+              component={RouterLink}
+              to="/"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+                color: 'inherit'
+              }}
+            >
+              <Security sx={{ mr: 1 }} />
+              <Typography variant="h6" noWrap>
+                ZeroChain
+              </Typography>
+            </Link>
+          </Box>
+
+          {/* Show buttons only when not mobile */}
+          {!isMobile && (
+            <Stack
+              direction="row"
+              spacing={2}
+            >
+              {navLinks.map((link) => (
+                <Button
+                  key={link.path}
+                  component={RouterLink}
+                  to={link.path}
+                  color="inherit"
+                >
+                  {link.text}
+                </Button>
+              ))}
+            </Stack>
+          )}
+
+          {isConnected ? (
+            <Stack direction="row" spacing={2} alignItems="center">
               <Chip
-                avatar={<Avatar><AccountCircle /></Avatar>}
-                label={formatAddress(account)}
-                variant="outlined"
-                onClick={disconnectWallet}
+                icon={<EmojiEvents />}
+                label={`Level ${playerLevel}`}
+                color="primary"
+                size="small"
+                sx={{ display: { xs: 'none', sm: 'flex' } }}
               />
-            </Box>
-          </Stack>
-        ) : (
-          <Button
-            variant="contained"
-            onClick={connectWallet}
-            disabled={isConnecting}
-            startIcon={<AccountCircle />}
-          >
-            {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-          </Button>
-        )}
-      </Toolbar>
-    </AppBar>
+              <Chip
+                label={`${securityPoints} Points`}
+                color="secondary"
+                size="small"
+                sx={{ display: { xs: 'none', sm: 'flex' } }}
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Chip
+                  avatar={<Avatar><AccountCircle /></Avatar>}
+                  label={formatAddress(account)}
+                  variant="outlined"
+                  onClick={disconnectWallet}
+                />
+              </Box>
+            </Stack>
+          ) : (
+            <Button
+              variant="contained"
+              onClick={connectWallet}
+              disabled={isConnecting}
+              startIcon={<AccountCircle />}
+            >
+              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+            </Button>
+          )}
+        </Toolbar>
+      </AppBar>
+
+      <Drawer
+        variant="temporary"
+        anchor="left"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: 250
+          }
+        }}
+      >
+        {drawer}
+      </Drawer>
+    </>
   );
 };
 
 export default Header;
-

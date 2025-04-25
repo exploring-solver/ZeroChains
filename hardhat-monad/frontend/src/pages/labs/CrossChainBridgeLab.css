@@ -1,0 +1,201 @@
+/* src/components/labs/CrossChainBridgeLab.css */
+.cross-chain-bridge-lab {
+    font-family: sans-serif;
+    padding: 20px;
+    max-width: 900px;
+    margin: 20px auto;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.lab-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 5px;
+}
+
+.lab-section h2 {
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+    color: #0056b3;
+}
+
+.lab-section h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+ul, ol {
+    margin-left: 20px;
+    line-height: 1.6;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+/* Code Blocks */
+.code-block {
+    background-color: #282c34; /* Dark background for code */
+    color: #abb2bf; /* Light text */
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto; /* Allow horizontal scrolling */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    margin-top: 10px;
+    white-space: pre; /* Preserve whitespace and line breaks */
+}
+
+/* Quiz Styling */
+.quiz-question {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+.quiz-option label {
+    margin-left: 8px;
+    cursor: pointer;
+}
+
+.quiz-option input[type="radio"] {
+    cursor: pointer;
+}
+
+
+.feedback {
+    margin-top: 5px;
+    font-weight: bold;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.feedback.correct {
+    color: #28a745; /* Green */
+    background-color: #e9f7ec;
+    border-left: 3px solid #28a745;
+}
+
+.feedback.incorrect {
+    color: #dc3545; /* Red */
+     background-color: #fdecea;
+     border-left: 3px solid #dc3545;
+}
+
+.quiz-score {
+    margin-top: 15px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* Challenge Area Styling */
+.challenge-area {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px dashed #007bff;
+    border-radius: 5px;
+    background-color: #f0f8ff; /* Light blue background */
+}
+
+.challenge-area h3 {
+     color: #0056b3;
+}
+
+.mint-controls, .bridge-controls {
+    margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 15px; /* Spacing between elements */
+    align-items: center; /* Align items vertically */
+}
+
+.bridge-controls div {
+    display: flex;
+    flex-direction: column; /* Stack label and input */
+    gap: 5px;
+}
+
+
+.challenge-area label {
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+.challenge-area input[type="number"],
+.challenge-area input[type="text"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.challenge-area button {
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.challenge-area button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.challenge-area button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.bridge-status-log {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+.bridge-status-log h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.bridge-status-log p {
+    margin: 5px 0;
+    padding-left: 10px; /* Indent status messages */
+    border-left: 2px solid #eee; /* Add a subtle left border */
+}
+
+.error-message {
+    color: #dc3545; /* Red */
+    font-weight: bold;
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #fdecea;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+}
+
+.success-message {
+     color: #28a745; /* Green */
+     font-weight: bold;
+     margin-top: 10px;
+     padding: 8px;
+     background-color: #e9f7ec;
+     border: 1px solid #c3e6cb;
+     border-radius: 4px;
+}

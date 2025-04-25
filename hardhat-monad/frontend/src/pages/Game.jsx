@@ -10,6 +10,7 @@ import {
   Box 
 } from '@mui/material';
 import { GamesOutlined } from '@mui/icons-material';
+import Levels from './Levels';
 
 const Game = () => {
   const { isConnected, connectWallet } = useWeb3();

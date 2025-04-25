@@ -50,7 +50,7 @@ const LevelCard = ({ level, name, description, isUnlocked, isCompleted }) => {
         {isUnlocked ? (
           <Button
             component={RouterLink}
-            to={`/level/${level}`}
+            to={`/levels/${level}`}
             variant="contained"
             startIcon={<PlayArrow />}
             fullWidth

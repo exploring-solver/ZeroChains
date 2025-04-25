@@ -1,4 +1,4 @@
-// Auto-generated from deployment on 2025-04-22T20:11:57.654Z
+// Auto-generated from deployment on 2025-04-25T15:14:26.247Z
 import BlockchainGuardianGameABI from './BlockchainGuardianGame.json';
 import Level1GenesisABI from './Level1Genesis.json';
 import Level2HashFortressABI from './Level2HashFortress.json';

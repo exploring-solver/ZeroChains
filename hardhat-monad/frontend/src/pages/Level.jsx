@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Box, 
-  Typography, 
+  Box,
+  Typography,
   Paper, 
   Button, 
   Stepper, 
