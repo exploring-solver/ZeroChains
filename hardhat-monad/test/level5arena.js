@@ -247,37 +247,37 @@ async function main() {
             console.log("\n❌ Level not completed. Make sure you've participated in at least 3 consecutive successful consensus rounds.");
         }
         
-        // Unstake our tokens
-        console.log("\nUnstaking tokens...");
-        const ourStake = await level5Contract.stake(walletAddress);
+        // // Unstake our tokens
+        // console.log("\nUnstaking tokens...");
+        // const ourStake = await level5Contract.stake(walletAddress);
         
-        if (ourStake > 0) {
-            try {
-                const unstakeTx = await level5Contract.unstake(ourStake, {
-                    gasLimit: 500000
-                });
+        // if (ourStake > 0) {
+        //     try {
+        //         const unstakeTx = await level5Contract.unstake(ourStake, {
+        //             gasLimit: 500000
+        //         });
                 
-                console.log(`Unstake transaction sent: ${unstakeTx.hash}`);
-                await unstakeTx.wait();
-                console.log(`✅ Unstaked ${ethers.formatEther(ourStake)} ETH`);
-            } catch (error) {
-                console.log(`❌ Unstaking failed: ${error.reason || error.message}`);
-            }
-        } else {
-            console.log("No stake to withdraw");
-        }
+        //         console.log(`Unstake transaction sent: ${unstakeTx.hash}`);
+        //         await unstakeTx.wait();
+        //         console.log(`✅ Unstaked ${ethers.formatEther(ourStake)} ETH`);
+        //     } catch (error) {
+        //         console.log(`❌ Unstaking failed: ${error.reason || error.message}`);
+        //     }
+        // } else {
+        //     console.log("No stake to withdraw");
+        // }
         
-        // Unstake from helpers
-        console.log("\nUnstaking from helper contracts...");
-        try {
-            await helper1.unstakeAll();
-            console.log("✅ Helper 1 funds unstaked");
+        // // Unstake from helpers
+        // console.log("\nUnstaking from helper contracts...");
+        // try {
+        //     await helper1.unstakeAll();
+        //     console.log("✅ Helper 1 funds unstaked");
             
-            await helper2.unstakeAll();
-            console.log("✅ Helper 2 funds unstaked");
-        } catch (error) {
-            console.log(`❌ Helper unstaking failed: ${error.reason || error.message}`);
-        }
+        //     await helper2.unstakeAll();
+        //     console.log("✅ Helper 2 funds unstaked");
+        // } catch (error) {
+        //     console.log(`❌ Helper unstaking failed: ${error.reason || error.message}`);
+        // }
         
     } catch (error) {
         console.error(`\n❌ Script failed: ${error.message}`);

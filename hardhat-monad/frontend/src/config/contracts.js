@@ -1,4 +1,4 @@
-// Auto-generated from deployment on 2025-04-25T15:14:26.245Z
+// Auto-generated from deployment on 2025-04-26T07:58:06.952Z
 export const contracts = {
   "BlockchainGuardianGame": {
     "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
